@@ -121,7 +121,8 @@ class McpController extends Controller
                                     'type' => 'object',
                                     'properties' => [
                                         'page' => ['type' => 'number', 'description' => 'Page number'],
-                                        'perPage' => ['type' => 'number', 'description' => 'Results per page']
+                                        'perPage' => ['type' => 'number', 'description' => 'Results per page'],
+                                        'search' => ['type' => 'string', 'description' => 'Partial string to search recipes by name or content']
                                     ]
                                 ]
                             ],
@@ -135,6 +136,54 @@ class McpController extends Controller
                                     ],
                                     'required' => ['recipeId']
                                 ]
+                            ],
+                            [
+                                'name' => 'mealie_get_cookbooks',
+                                'description' => 'Get a list of cookbooks for a household',
+                                'inputSchema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'householdId' => ['type' => 'string', 'description' => 'The ID of the household']
+                                    ],
+                                    'required' => ['householdId']
+                                ]
+                            ],
+                            [
+                                'name' => 'mealie_create_cookbook',
+                                'description' => 'Create a new cookbook',
+                                'inputSchema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'householdId' => ['type' => 'string', 'description' => 'The ID of the household'],
+                                        'name' => ['type' => 'string', 'description' => 'Name of the cookbook']
+                                    ],
+                                    'required' => ['householdId', 'name']
+                                ]
+                            ],
+                            [
+                                'name' => 'mealie_update_cookbook',
+                                'description' => 'Update an existing cookbook',
+                                'inputSchema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'householdId' => ['type' => 'string', 'description' => 'The ID of the household'],
+                                        'cookbookId' => ['type' => 'string', 'description' => 'The ID of the cookbook to update'],
+                                        'name' => ['type' => 'string', 'description' => 'New name for the cookbook']
+                                    ],
+                                    'required' => ['householdId', 'cookbookId', 'name']
+                                ]
+                            ],
+                            [
+                                'name' => 'mealie_delete_cookbook',
+                                'description' => 'Delete a cookbook',
+                                'inputSchema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'householdId' => ['type' => 'string', 'description' => 'The ID of the household'],
+                                        'cookbookId' => ['type' => 'string', 'description' => 'The ID of the cookbook to delete']
+                                    ],
+                                    'required' => ['householdId', 'cookbookId']
+                                ]
                             ]
                         ]
                     ];
@@ -147,7 +196,8 @@ class McpController extends Controller
                     if ($toolName === 'mealie_list_recipes') {
                         $page = $toolArgs['page'] ?? 1;
                         $perPage = $toolArgs['perPage'] ?? 50;
-                        $recipes = $this->mealieService->getRecipes($page, $perPage);
+                        $search = $toolArgs['search'] ?? null;
+                        $recipes = $this->mealieService->getRecipes($page, $perPage, $search);
                         $result = [
                             'content' => [
                                 ['type' => 'text', 'text' => json_encode($recipes, JSON_PRETTY_PRINT)]
@@ -163,6 +213,43 @@ class McpController extends Controller
                             'content' => [
                                 ['type' => 'text', 'text' => json_encode($recipe, JSON_PRETTY_PRINT)]
                             ]
+                        ];
+                    } elseif ($toolName === 'mealie_get_cookbooks') {
+                        $householdId = $toolArgs['householdId'] ?? '';
+                        if (!$householdId) {
+                            throw new \Exception("Missing householdId argument");
+                        }
+                        $cookbooks = $this->mealieService->getCookbooks($householdId);
+                        $result = [
+                            'content' => [['type' => 'text', 'text' => json_encode($cookbooks, JSON_PRETTY_PRINT)]]
+                        ];
+                    } elseif ($toolName === 'mealie_create_cookbook') {
+                        $householdId = $toolArgs['householdId'] ?? '';
+                        $name = $toolArgs['name'] ?? '';
+                        if (!$householdId || !$name) throw new \Exception("Missing householdId or name argument");
+                        
+                        $cookbook = $this->mealieService->createCookbook($householdId, ['name' => $name]);
+                        $result = [
+                            'content' => [['type' => 'text', 'text' => json_encode($cookbook, JSON_PRETTY_PRINT)]]
+                        ];
+                    } elseif ($toolName === 'mealie_update_cookbook') {
+                        $householdId = $toolArgs['householdId'] ?? '';
+                        $cookbookId = $toolArgs['cookbookId'] ?? '';
+                        $name = $toolArgs['name'] ?? '';
+                        if (!$householdId || !$cookbookId || !$name) throw new \Exception("Missing arguments");
+                        
+                        $cookbook = $this->mealieService->updateCookbook($householdId, $cookbookId, ['name' => $name]);
+                        $result = [
+                            'content' => [['type' => 'text', 'text' => json_encode($cookbook, JSON_PRETTY_PRINT)]]
+                        ];
+                    } elseif ($toolName === 'mealie_delete_cookbook') {
+                        $householdId = $toolArgs['householdId'] ?? '';
+                        $cookbookId = $toolArgs['cookbookId'] ?? '';
+                        if (!$householdId || !$cookbookId) throw new \Exception("Missing arguments");
+                        
+                        $response = $this->mealieService->deleteCookbook($householdId, $cookbookId);
+                        $result = [
+                            'content' => [['type' => 'text', 'text' => json_encode($response, JSON_PRETTY_PRINT)]]
                         ];
                     } else {
                         throw new \Exception("Tool not found: {$toolName}");
