@@ -98,6 +98,8 @@ In Plesk → **SSL/TLS Certificates** → **Let's Encrypt** → check **Redirect
 
 ### 8. Verify
 
+Visit `https://mealie-mcp.yourdomain.com/` in a browser — it returns a JSON blob naming the server and its MCP endpoint. Then confirm the endpoint itself with your token:
+
 ```bash
 curl https://mealie-mcp.yourdomain.com/mcp -X POST \
   -H "Content-Type: application/json" \
