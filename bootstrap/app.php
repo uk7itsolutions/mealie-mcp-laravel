@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ValidateMealieToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,9 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->validateCsrfTokens(except: [
-            'mcp/*',
+        $middleware->alias([
+            'validate.mealie.token' => ValidateMealieToken::class,
         ]);
+        $middleware->validateCsrfTokens(except: ['mcp', 'mcp/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

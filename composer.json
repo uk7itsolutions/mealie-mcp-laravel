@@ -1,13 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "uk7itsolutions/mealie-mcp",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Laravel MCP server for Mealie with Bearer token auth.",
+    "keywords": ["mealie", "mcp", "laravel", "recipes"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
         "laravel/framework": "^13.8",
+        "laravel/mcp": "^0.8",
         "laravel/tinker": "^3.0"
     },
     "require-dev": {
@@ -52,8 +53,14 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
+        "post-install-cmd": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php artisan key:generate --ansi --no-interaction"
+        ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php artisan key:generate --ansi --no-interaction"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
@@ -74,6 +81,9 @@
     },
     "config": {
         "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3.0"
+        },
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
