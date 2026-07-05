@@ -33,6 +33,11 @@ class MealieClient
         return $this->request('put', $path, ['json' => $data, 'query' => $query]);
     }
 
+    public function patch(string $path, array $data, array $query = []): mixed
+    {
+        return $this->request('patch', $path, ['json' => $data, 'query' => $query]);
+    }
+
     public function delete(string $path, array $query = []): mixed
     {
         return $this->request('delete', $path, ['query' => $query]);
@@ -60,6 +65,7 @@ class MealieClient
                 'get' => $http->get($url),
                 'post' => $http->post($url, $payload),
                 'put' => $http->put($url, $payload),
+                'patch' => $http->patch($url, $payload),
                 'delete' => $http->delete($url),
             };
         } catch (ConnectionException $e) {

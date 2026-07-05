@@ -145,6 +145,13 @@ claude mcp add --transport http mealie https://mealie-mcp.yourdomain.com/mcp \
 |---|---|
 | `list_recipes` | List recipes. Supports pagination (`page`, `perPage`) and partial string searches (`search`). |
 | `get_recipe` | Get full details for a single recipe by its id or slug. |
+| `create_recipe` | Create a recipe with optional description, servings, times, ingredients and instructions. |
+| `update_recipe` | Update a recipe; ingredients/instructions replace the existing lists when given. |
+| `import_recipe_from_url` | Import a recipe by scraping a webpage URL. |
+| `list_foods` | List foods (ingredient items), with search — ids are used as `foodId` in recipe ingredients. |
+| `create_food` | Create a food, e.g. "onion". |
+| `list_units` | List measurement units, with search — ids are used as `unitId` in recipe ingredients. |
+| `create_unit` | Create a measurement unit, e.g. "cup". |
 | `list_households` | List the households in the current group (cookbooks are scoped to a household). |
 | `list_cookbooks` | List the cookbooks of a household (`householdId`). |
 | `create_cookbook` | Create a new cookbook (requires `householdId` and `name`). |
@@ -152,6 +159,15 @@ claude mcp add --transport http mealie https://mealie-mcp.yourdomain.com/mcp \
 | `delete_cookbook` | Delete a cookbook. |
 
 Tool failures are returned as structured MCP errors that tell the calling AI whether the problem was reported by Mealie (invalid data, missing record, permissions) or was a connection failure — and whether retrying can help.
+
+### Creating recipes
+
+Mealie stores ingredients as structured data: an amount, a *unit* (cup, tablespoon, …) and a *food* (flour, onion, …), plus a free-text note. The server handles the two-step creation Mealie requires (create by name, then patch the details), and resolves the `foodId`/`unitId` references for you. A typical AI workflow:
+
+1. `list_foods` / `list_units` to find existing ids (`create_food` / `create_unit` for anything missing)
+2. `create_recipe` with structured `ingredients` (`quantity`, `unitId`, `foodId`, `note`) and `instructions`
+
+Ingredients can also be plain text — an entry with only a `note` (e.g. `"a pinch of salt"`) works without any food/unit setup. Or skip all of it and point `import_recipe_from_url` at a recipe webpage.
 
 ---
 
@@ -176,8 +192,17 @@ app/
 │   │   └── MealieServer.php         # Registers the tools + server instructions
 │   └── Tools/
 │       ├── MealieTool.php           # Base class: converts failures to MCP errors
+│       ├── Concerns/
+│       │   └── BuildsRecipePayload.php  # Shared recipe fields + food/unit id resolution
 │       ├── ListRecipesTool.php
 │       ├── GetRecipeTool.php
+│       ├── CreateRecipeTool.php
+│       ├── UpdateRecipeTool.php
+│       ├── ImportRecipeFromUrlTool.php
+│       ├── ListFoodsTool.php
+│       ├── CreateFoodTool.php
+│       ├── ListUnitsTool.php
+│       ├── CreateUnitTool.php
 │       ├── ListHouseholdsTool.php
 │       ├── ListCookbooksTool.php
 │       ├── CreateCookbookTool.php
