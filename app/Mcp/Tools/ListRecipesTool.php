@@ -10,7 +10,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('list_recipes')]
-#[Description('List recipes, with pagination and an optional free-text search on name or content.')]
+#[Description('List recipes, with pagination, optional free-text search, and optional cookbook filter.')]
 class ListRecipesTool extends MealieTool
 {
     public function __construct(private readonly MealieClient $client) {}
@@ -18,9 +18,10 @@ class ListRecipesTool extends MealieTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'search'  => $schema->string()->description('Partial string to search recipes by name or content.'),
-            'page'    => $schema->integer()->description('Page number.')->default(1),
-            'perPage' => $schema->integer()->description('Results per page.')->default(50),
+            'search'     => $schema->string()->description('Partial string to search recipes by name or content.'),
+            'cookbookId' => $schema->string()->description('Optional cookbook id to filter recipes by a specific cookbook.'),
+            'page'       => $schema->integer()->description('Page number.')->default(1),
+            'perPage'    => $schema->integer()->description('Results per page.')->default(50),
         ];
     }
 
@@ -33,6 +34,10 @@ class ListRecipesTool extends MealieTool
 
         if ($request->has('search')) {
             $params['search'] = $request->get('search');
+        }
+
+        if ($request->has('cookbookId')) {
+            $params['cookbook'] = $request->get('cookbookId');
         }
 
         return Response::text(json_encode($this->client->get('recipes', $params)));
