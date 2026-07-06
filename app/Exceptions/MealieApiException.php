@@ -35,7 +35,7 @@ class MealieApiException extends RuntimeException
         $hint = match (true) {
             $this->statusCode === 401 => 'Mealie rejected the API token (401). The token for this connection is invalid or expired. Generate a new token on the Mealie User Profile page; retrying without fixing the token will not help.',
             $this->statusCode === 403 => 'Mealie denied this action due to permissions (403). The token\'s user lacks the required permission for this resource (e.g. household management rights). This is a server-side configuration problem; retrying will not help.',
-            $this->statusCode === 404 => 'Mealie could not find the requested record (404). Check that the id or slug exists — recipe ids/slugs and household/cookbook ids are case-sensitive.',
+            $this->statusCode === 404 => 'Mealie could not find the requested record (404). Check that the id or slug exists — recipe ids/slugs and cookbook ids are case-sensitive.',
             $this->statusCode === 422 => 'Mealie rejected the submitted data as invalid (422 validation error). Read the field errors in the response body below, correct the input, then try again.',
             $this->statusCode >= 500 => 'Mealie returned an internal server error (5xx). The problem is inside the Mealie application, not the MCP connection.',
             default => "Mealie rejected the request with HTTP {$this->statusCode}.",

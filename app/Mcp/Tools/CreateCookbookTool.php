@@ -10,7 +10,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('create_cookbook')]
-#[Description('Create a new cookbook in a household.')]
+#[Description('Create a new cookbook.')]
 class CreateCookbookTool extends MealieTool
 {
     public function __construct(private readonly MealieClient $client) {}
@@ -18,7 +18,6 @@ class CreateCookbookTool extends MealieTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'householdId' => $schema->string()->description('The id of the household. See list_households.')->required(),
             'name'        => $schema->string()->description('Name of the cookbook.')->required(),
             'description' => $schema->string()->description('Optional description of the cookbook.'),
         ];
@@ -33,7 +32,7 @@ class CreateCookbookTool extends MealieTool
         }
 
         return Response::text(json_encode($this->client->post(
-            'households/'.rawurlencode($request->get('householdId')).'/cookbooks',
+            'households/cookbooks',
             $data,
         )));
     }

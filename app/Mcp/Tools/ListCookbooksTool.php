@@ -10,24 +10,20 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('list_cookbooks')]
-#[Description('List the cookbooks of a household.')]
+#[Description('List the cookbooks.')]
 class ListCookbooksTool extends MealieTool
 {
     public function __construct(private readonly MealieClient $client) {}
 
     public function schema(JsonSchema $schema): array
     {
-        return [
-            'householdId' => $schema->string()->description('The id of the household. See list_households.')->required(),
-        ];
+        return [];
     }
 
     protected function execute(Request $request): Response
     {
-        $householdId = $request->get('householdId');
-
         return Response::text(json_encode(
-            $this->client->get('households/'.rawurlencode($householdId).'/cookbooks')
+            $this->client->get('households/cookbooks')
         ));
     }
 }
