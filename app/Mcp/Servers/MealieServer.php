@@ -7,6 +7,7 @@ use App\Mcp\Tools\CreateFoodTool;
 use App\Mcp\Tools\CreateRecipeTool;
 use App\Mcp\Tools\CreateUnitTool;
 use App\Mcp\Tools\DeleteCookbookTool;
+use App\Mcp\Tools\GetCookbookRecipesTool;
 use App\Mcp\Tools\GetRecipeTool;
 use App\Mcp\Tools\ImportRecipeFromUrlTool;
 use App\Mcp\Tools\ListCookbooksTool;
@@ -41,5 +42,6 @@ class MealieServer extends Server
         CreateCookbookTool::class,
         UpdateCookbookTool::class,
         DeleteCookbookTool::class,
+        GetCookbookRecipesTool::class,
     ];
 }
