@@ -23,7 +23,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('Mealie')]
 #[Version('2.1.0')]
-#[Instructions('Manage recipes, foods, units and cookbooks in a Mealie instance. To create a recipe with structured ingredients: find or create each ingredient\'s food (list_foods / create_food) and unit (list_units / create_unit) first, then call create_recipe with the ids — or pass ingredients as plain text in the note field. import_recipe_from_url scrapes a recipe webpage instead. Cookbooks are scoped to a household — call list_households first to discover household ids.')]
+#[Instructions('Manage recipes, foods, units and cookbooks in a Mealie instance. To create a recipe with structured ingredients: find or create each ingredient\'s food (list_foods / create_food) and unit (list_units / create_unit) first, then call create_recipe with the ids — or pass ingredients as plain text in the note field. import_recipe_from_url scrapes a recipe webpage instead.')]
 class MealieServer extends Server
 {
     protected array $tools = [
