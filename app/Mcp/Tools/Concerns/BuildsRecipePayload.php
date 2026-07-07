@@ -40,6 +40,8 @@ trait BuildsRecipePayload
                 'text'  => $schema->string()->description('The step text.')->required(),
                 'title' => $schema->string()->description('Optional section header shown above this step, e.g. "Bake".'),
             ]))->description('Ordered list of instruction steps, replacing any existing steps.'),
+            'tags' => $schema->array()->items($schema->string())->description('List of tag names to apply to the recipe.'),
+            'categories' => $schema->array()->items($schema->string())->description('List of category names to apply to the recipe.'),
         ];
     }
 
@@ -78,6 +80,20 @@ trait BuildsRecipePayload
                     'title' => $step['title'] ?? null,
                 ], fn ($value) => $value !== null),
                 $request->get('instructions'),
+            );
+        }
+
+        if ($request->has('tags')) {
+            $payload['tags'] = array_map(
+                fn (string $tag) => ['name' => $tag],
+                $request->get('tags')
+            );
+        }
+
+        if ($request->has('categories')) {
+            $payload['recipeCategory'] = array_map(
+                fn (string $category) => ['name' => $category],
+                $request->get('categories')
             );
         }
 
