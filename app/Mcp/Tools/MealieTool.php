@@ -31,6 +31,11 @@ abstract class MealieTool extends Tool
             return Response::error($e->forAi());
         } catch (MealieConnectionException $e) {
             return Response::error($e->forAi());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return Response::error(
+                "Invalid input parameters provided to the tool:\n" .
+                collect($e->errors())->map(fn($msgs, $field) => "- {$field}: " . implode(' ', $msgs))->implode("\n")
+            );
         } catch (Throwable $e) {
             // An unexpected failure inside the MCP server itself (a bug) — not
             // Mealie and not the connection. Log it and report it plainly.
