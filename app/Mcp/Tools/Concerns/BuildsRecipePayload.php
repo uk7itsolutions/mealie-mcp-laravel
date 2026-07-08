@@ -2,7 +2,9 @@
 
 namespace App\Mcp\Tools\Concerns;
 
+use App\Exceptions\MealieApiException;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 
 /**
@@ -20,6 +22,8 @@ trait BuildsRecipePayload
 
     private array $resolvedUnits = [];
 
+    private array $resolvedRecipes = [];
+
     protected function recipeFieldSchemas(JsonSchema $schema): array
     {
         return [
@@ -32,10 +36,11 @@ trait BuildsRecipePayload
             'ingredients'  => $schema->array()->items($schema->object([
                 'quantity' => $schema->number()->description('Amount, e.g. 2 or 0.5.'),
                 'unitId'   => $schema->string()->description('Id of a unit. See list_units / create_unit.'),
-                'foodId'   => $schema->string()->description('Id of a food. See list_foods / create_food.'),
+                'foodId'   => $schema->string()->description('Id of a food. See list_foods / create_food. Must be a food id — to use another recipe as an ingredient, pass recipeId instead.'),
+                'recipeId' => $schema->string()->description('Id or slug of another recipe to link as a sub-recipe ingredient. See list_recipes. Use this (not foodId) to reference other recipes.'),
                 'note'     => $schema->string()->description('Free text, e.g. "finely diced" — or the entire ingredient line when no foodId/unitId is given.'),
                 'title'    => $schema->string()->description('Optional section header shown above this ingredient, e.g. "For the sauce".'),
-            ]))->description('Ingredient list, replacing any existing ingredients. Prefer structured entries (quantity + unitId + foodId + note); create missing foods/units first. A plain-text entry with only a note also works.'),
+            ]))->description('Ingredient list, replacing any existing ingredients. Prefer structured entries (quantity + unitId + foodId + note); create missing foods/units first. A plain-text entry with only a note also works. To use another recipe as an ingredient (a sub-recipe), pass its id as recipeId.'),
             'instructions' => $schema->array()->items($schema->object([
                 'text'  => $schema->string()->description('The step text.')->required(),
                 'title' => $schema->string()->description('Optional section header shown above this step, e.g. "Bake".'),
@@ -112,14 +117,46 @@ trait BuildsRecipePayload
 
         if (! empty($ingredient['foodId'])) {
             $entry['food'] = $this->resolvedFoods[$ingredient['foodId']]
-                ??= $this->client->get('foods/'.rawurlencode($ingredient['foodId']));
+                ??= $this->resolveReference('foods', $ingredient['foodId'], 'foodId',
+                    'foodId must be a food id from list_foods (or create_food). If this id belongs to a recipe you want to use as an ingredient, pass it as recipeId instead of foodId.');
         }
 
         if (! empty($ingredient['unitId'])) {
             $entry['unit'] = $this->resolvedUnits[$ingredient['unitId']]
-                ??= $this->client->get('units/'.rawurlencode($ingredient['unitId']));
+                ??= $this->resolveReference('units', $ingredient['unitId'], 'unitId',
+                    'unitId must be a unit id from list_units (or create_unit).');
+        }
+
+        if (! empty($ingredient['recipeId'])) {
+            // Resolve up front so a bad id fails with a clear message, and so
+            // slugs are normalised to the id Mealie stores on the link.
+            $recipe = $this->resolvedRecipes[$ingredient['recipeId']]
+                ??= $this->resolveReference('recipes', $ingredient['recipeId'], 'recipeId',
+                    'recipeId must be the id or slug of an existing recipe; see list_recipes.');
+
+            $entry['referencedRecipe'] = ['id' => $recipe['id']];
         }
 
         return $entry;
+    }
+
+    /**
+     * Fetch a referenced food/unit/recipe, turning Mealie's bare 404 into an
+     * input error that names the offending ingredient field. Without this the
+     * 404 reads as if the recipe being created/updated was not found.
+     */
+    private function resolveReference(string $resource, string $id, string $field, string $hint): array
+    {
+        try {
+            return $this->client->get($resource.'/'.rawurlencode($id));
+        } catch (MealieApiException $e) {
+            if ($e->statusCode !== 404) {
+                throw $e;
+            }
+
+            throw ValidationException::withMessages([
+                "ingredients.{$field}" => "No {$resource} record exists in Mealie with the id '{$id}'. This 404 is about the ingredient's {$field} lookup, not about the recipe being created or updated. {$hint}",
+            ]);
+        }
     }
 }
