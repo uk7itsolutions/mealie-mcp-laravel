@@ -159,6 +159,88 @@ class McpServerTest extends TestCase
         });
     }
 
+    public function test_update_recipe_links_other_recipes_as_ingredients(): void
+    {
+        Http::fake(function ($request) {
+            $url = $request->url();
+            $method = $request->method();
+
+            return match (true) {
+                str_contains($url, '/api/users/self') => Http::response(['id' => 'user-1'], 200),
+                $method === 'GET' && str_contains($url, '/api/recipes/party-honey') => Http::response(['id' => 'recipe-b-id', 'slug' => 'party-honey'], 200),
+                $method === 'PATCH' && str_contains($url, '/api/recipes/helios-dawn') => Http::response(['slug' => 'helios-dawn'], 200),
+                $method === 'GET' && str_contains($url, '/api/recipes/helios-dawn') => Http::response(['slug' => 'helios-dawn', 'name' => "Helios' Dawn"], 200),
+                default => Http::response(['detail' => 'unexpected request: '.$method.' '.$url], 500),
+            };
+        });
+
+        $response = $this->postJson('/mcp', [
+            'jsonrpc' => '2.0',
+            'id' => 6,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'update_recipe',
+                'arguments' => [
+                    'recipeId' => 'helios-dawn',
+                    'ingredients' => [
+                        ['recipeId' => 'party-honey', 'note' => "Helios' Dawn Part 1"],
+                    ],
+                ],
+            ],
+        ], [
+            'Authorization' => 'Bearer good-token',
+            'Accept' => 'application/json, text/event-stream',
+        ]);
+
+        $response->assertOk();
+        $this->assertFalse((bool) $response->json('result.isError'), $response->json('result.content.0.text') ?? '');
+
+        Http::assertSent(function ($request) {
+            if ($request->method() !== 'PATCH') {
+                return false;
+            }
+
+            $ingredient = $request->data()['recipeIngredient'][0];
+
+            return $ingredient['referencedRecipe'] === ['id' => 'recipe-b-id']
+                && $ingredient['note'] === "Helios' Dawn Part 1"
+                && ! isset($ingredient['food']);
+        });
+    }
+
+    public function test_unknown_food_id_reports_input_error_instead_of_bare_404(): void
+    {
+        Http::fake([
+            'https://mealie.test/api/users/self' => Http::response(['id' => 'user-1'], 200),
+            'https://mealie.test/api/foods/*' => Http::response(['detail' => 'Not found'], 404),
+        ]);
+
+        $response = $this->postJson('/mcp', [
+            'jsonrpc' => '2.0',
+            'id' => 7,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'update_recipe',
+                'arguments' => [
+                    'recipeId' => 'helios-dawn',
+                    'ingredients' => [
+                        ['foodId' => 'actually-a-recipe-id', 'note' => 'Part 1'],
+                    ],
+                ],
+            ],
+        ], [
+            'Authorization' => 'Bearer good-token',
+            'Accept' => 'application/json, text/event-stream',
+        ]);
+
+        $response->assertOk();
+        $this->assertTrue((bool) $response->json('result.isError'));
+
+        $message = $response->json('result.content.0.text');
+        $this->assertStringContainsString('foodId', $message);
+        $this->assertStringContainsString('recipeId instead of foodId', $message);
+    }
+
     public function test_list_recipes_tool_calls_mealie_and_returns_payload(): void
     {
         Http::fake([
